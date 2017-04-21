@@ -25,7 +25,6 @@ Signal correctly sent to Equipe.
 TODO
 ---------
 *Log of the activity.
-*Fix reception of the cmd from Equipe to start timing manually.
 *Web interface.
 
 
