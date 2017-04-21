@@ -25,6 +25,7 @@ Signal correctly sent to Equipe.
 TODO
 ---------
 *Log of the activity.
+
 *Web interface.
 
 
