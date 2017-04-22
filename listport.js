@@ -1,3 +1,11 @@
+///////////////////////////////////////////////////////////
+///// Test File for the connector.
+///// no more used
+///// please use main.js
+///////////////////////////////////////////////////////////
+
+
+
 const WebSocket = require('ws');
 var S = require('string');
 const wss = new WebSocket.Server({port: 21000});
