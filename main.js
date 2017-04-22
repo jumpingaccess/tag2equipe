@@ -1,9 +1,33 @@
+//////////////////////////////////////////////////////////////
+//// TAG2Equipe command Line Connector 
+//// *********************************
+////
+//// This is used to make a bridge between TAG HEUER CP 540/545
+//// To Equipe Software.
+////
+//// Functions already included:
+//// ***************************
+////
+//// * Serial and IP Serial Connections
+//// * Websocket and Secure Websocket on ws:// and wss:// 
+//// * Basic Log of activity in the log folder
+////
+////
+//// Todo
+//// ******
+////
+//// * Web interface creation.
+////
+//////////////////////////////////////////////////////////////
+
+//////////////////////////////////////////////////////////////
+//// Required modules call
+//////////////////////////////////////////////////////////////
 const WebSocket = require('ws');
 var S = require('string');
 var express = require('express');
 var readlineSync = require('readline-sync');
 const TickTimer = require("./time-ticks.js");
-var Portfind;
 var SerialPort = require('serialport');
 var net = require('net');
 var fs = require('fs');
@@ -11,13 +35,15 @@ var dateFormat = require('dateformat');
 var now = new Date();
 var dateoftheday = dateFormat(now,"ddmmyy");
 var WebSocketServer = require('ws').Server;
-var express = require('express');
 var app = express();
-var WebSocketServer = require('ws').Server
-
 var crypto = require('crypto');
 var https = require("https");
 
+//////////////////////////////////////////////////////////////
+//// Required variables call
+//////////////////////////////////////////////////////////////
+
+var Portfind;
 var payload_output = {
       time: null,
       previousTime: null,
@@ -41,12 +67,32 @@ var payload_output = {
       timeToBeatTime: null,
       timekeepingOutputId: null
 };
+var path_log = "./logs";
+var ligne ="";
+var httpsServer;
+var wssl;
+var certificate = fs.readFileSync('cert/cert.pem', 'utf8');
+var privateKey  = fs.readFileSync('cert/key.pem', 'utf8');
+var credentials = {key: privateKey, cert: certificate};
+var json_com="";
+var interval;
+var json_txt;
+var msg_received;
+var msg_type;
+var msg_cmd;
+var msg_node;
+var rep;
+var saverider, savetime, countdiff, phase1,ret,elim;
+var Portselected;
+var myPort;
 
-
+console.log("**************************************************");
+console.log("** Tag2Equipe Connector by Jumpingaccess Studio **");
+console.log("**************************************************");
 ////////////////////////////////////////////////////////
 ///// File system verification for logs of activity
 ////////////////////////////////////////////////////////
-var path_log = "./logs";
+
 if (!fs.existsSync(path_log)){
     fs.mkdirSync(path_log);
     console.log("LOG Folder :"+path_log+" has been successfully created");
@@ -57,10 +103,8 @@ if (!fs.existsSync(path_log)){
 ///// Creation of the Log File
 //////////////////////////////////////////////////////////
 
-var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Start of the log file\r\n";
+ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Start of the log file\r\n";
 fs.writeFile(path_log+"/log"+dateoftheday+".txt",ligne)
-
-
 
 ////////////////////////////////////////////////////////
 // WebSocket Server to Equipe 
@@ -69,27 +113,22 @@ fs.writeFile(path_log+"/log"+dateoftheday+".txt",ligne)
 const wss = new WebSocket.Server({port: 21000});
 console.log("Websocket Server listening on : ws://127.0.0.1:21000");
 
-
 ////////////////////////////////////////////////////////
 // WebSocket SSL Server to Equipe 
 ////////////////////////////////////////////////////////
- var certificate = fs.readFileSync('cert/cert.pem', 'utf8');
- var privateKey  = fs.readFileSync('cert/key.pem', 'utf8');
- var credentials = {key: privateKey, cert: certificate};
- 
- 
- //... bunch of other express stuff here ...
- //pass in your express app and credentials to create an https server
- var httpsServer = https.createServer(credentials, app);
+
+ httpsServer = https.createServer(credentials, app);
  httpsServer.listen(21001);
- var wssl = new WebSocketServer({
+ wssl = new WebSocketServer({
         server: httpsServer
       });
 console.log("Secure Websocket Server listening on : wss://127.0.0.1:21001");
+console.log("Application listening on : https://127.0.0.1:21001");
+
 
 CLIENTS=[];
-var json_com="";
-var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Start of the Websocket Server \r\n";
+
+ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Start of the Websocket Server \r\n";
 fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
 wss.on('connection', connection);   
 wss.on('close',wsclose);
@@ -100,16 +139,11 @@ function connection(ws) {
         /// Send Running time to Equipe //
         //////////////////////////////////
         CLIENTS.push(ws);
-        var interval = setInterval(function timeout() {
-            var json_txt = JSON.stringify({"type":"runningTime","payload":{"time": TickTimer.ticksToTime(TickTimer.now()),"ticks":TickTimer.now()}})
+        interval = setInterval(function timeout() {
+            json_txt = JSON.stringify({"type":"runningTime","payload":{"time": TickTimer.ticksToTime(TickTimer.now()),"ticks":TickTimer.now()}})
             ws.send(json_txt,function (){ /* ignore errors */ })    ;
-        
         }, 75);
 
-        //var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] New Connection from "+ws._socket.remoteAddress+":"+ ws._socket.remotePort+" \r\n";
-        //fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
-
-    
         ///////////////////////////////////////
         //// Json Parser 
         ///////////////////////////////////////
@@ -122,17 +156,17 @@ function connection(ws) {
             };
         };
         function wsdata(data) {
-            var msg_received = JSON.parse(data);
-            var msg_type = msg_received["type"];
-            var msg_cmd = msg_received["payload"]["cmd"];
-            var msg_node = msg_received["payload"]["node"];
+            msg_received = JSON.parse(data);
+            msg_type = msg_received["type"];
+            msg_cmd = msg_received["payload"]["cmd"];
+            msg_node = msg_received["payload"]["node"];
             if ((msg_type=='cmd') && (msg_cmd=="trigger") && (msg_node != "") ) {
                 /////////////////////////////////////////////////////////////////////////////
                 //// Send Pulse information when requested ( Tag Pulse or Manual in Equipe)
                 /////////////////////////////////////////////////////////////////////////////
-                var rep = JSON.stringify({"type": "pulse", "payload":{ "timeTicks": TickTimer.now(), "node": msg_node, "resends": 1, "batteryLevel": 4, "RSSI": -10}});
+                rep = JSON.stringify({"type": "pulse", "payload":{ "timeTicks": TickTimer.now(), "node": msg_node, "resends": 1, "batteryLevel": 4, "RSSI": -10}});
                 sendAll(rep);
-                var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] New Pulse information on node:"+msg_node+" \r\n";
+                ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] New Pulse information on node:"+msg_node+" \r\n";
                 fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
             };
 
@@ -162,41 +196,41 @@ function connection(ws) {
                 payload_output.timekeepingOutputId=msg_received["payload"]["timekeepingOutpuId"];
                 payload_output.totalFaults=msg_received["payload"]["totalFaults"];
                 payload_output.waiting=msg_received["payload"]["waiting"];
-                var saverider, savetime, countdiff, phase1,ret,elim;
+                
 
                 if((payload_output.running== false)&&(payload_output.countDown==true)){
                     if (saverider != payload_output.rider) {
-                        var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] New Start: Rider"+payload_output.rider+" with horse: "+payload_output.horse+" \r\n";
+                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] New Start: Rider"+payload_output.rider+" with horse: "+payload_output.horse+" \r\n";
                         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
                     };
                 };
                 if((payload_output.running== true)&&(payload_output.countDown==false)&&(payload_output.phase==1)){
                     if (countdiff != payload_output.countDownDiff) {
-                        var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] End of CountDown at: "+payload_output.countDownDiff+" \r\n";
+                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] End of CountDown at: "+payload_output.countDownDiff+" \r\n";
                         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
                     };
                 };
 
                 if((payload_output.running== true)&&(payload_output.countDown==false)&&(payload_output.phase==2)){
                     if (phase1 != payload_output.previousTime) {
-                        var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Phase 1 Time: "+payload_output.previousTime+" \r\n";
+                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Phase 1 Time: "+payload_output.previousTime+" \r\n";
                         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
                     };
                 };
 
                 if((payload_output.running== false)&&(payload_output.countDown==false)){
                     if (savetime != payload_output.time) {
-                        var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Finish for Rider"+payload_output.rider+" with horse: "+payload_output.horse+" - Time:"+payload_output.time+" / Pen:"+payload_output.faults+" \r\n";
+                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Finish for Rider"+payload_output.rider+" with horse: "+payload_output.horse+" - Time:"+payload_output.time+" / Pen:"+payload_output.faults+" \r\n";
                         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
                     };
                 };
 
                 if((payload_output.faults== "666")){
-                        var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"]  Retires for Rider"+payload_output.rider+" with horse: "+payload_output.horse+"\r\n";
+                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"]  Retires for Rider"+payload_output.rider+" with horse: "+payload_output.horse+"\r\n";
                         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
                 };
                 if((payload_output.faults== "999")){
-                        var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"]  Elimination for Rider"+payload_output.rider+" with horse: "+payload_output.horse+"\r\n";
+                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"]  Elimination for Rider"+payload_output.rider+" with horse: "+payload_output.horse+"\r\n";
                         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
                 };
 
@@ -220,17 +254,10 @@ function connection(ws) {
 function wsclose() {
     clearInterval(interval);
     //console.log("Connection WS closed")
-    var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] End of the Websocket Server.\r\n";
+    ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] End of the Websocket Server.\r\n";
     fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
 
 }
-
-
-
-
-
-
-
 
 /////////////////////////////////////////////////////
 /// Search of Serial Port available and Display.
@@ -238,23 +265,23 @@ function wsclose() {
 /////////////////////////////////////////////////////
 console.log ("Serial port Listing");
 console.log(' Port: ETH');
-var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Listing of the availables ports:\r\nETH\r\n";
+ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Listing of the availables ports:\r\nETH\r\n";
 fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
 
 SerialPort.list(function (err, ports) {
     ports.forEach(function(port) {
         Portfind=port.comName; 
         console.log(' Port:' +port.comName);
-        var ligne = "Port:"+port.comName+"\r\n";
+        ligne = "Port:"+port.comName+"\r\n";
         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
 
    });
         
     // Prompt command line
 
-    var Portselected = readlineSync.question('Please Choose the Serial Port; ');
+    Portselected = readlineSync.question('Please Choose the Serial Port; ');
     if (S(Portselected).contains("COM") == true) {
-        var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Selected Port :"+Portselected+"\r\n";
+        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Selected Port :"+Portselected+"\r\n";
         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
 
         ///////////////////////
@@ -262,7 +289,7 @@ SerialPort.list(function (err, ports) {
         ///////////////////////
         
         console.log(' Port:' + Portselected);
-        var myPort = new SerialPort(Portselected, {
+        myPort = new SerialPort(Portselected, {
             baudrate: 9600,
             parser: SerialPort.parsers.readline("\n")
         });
@@ -330,7 +357,6 @@ SerialPort.list(function (err, ports) {
         function getethdata(data) {
             var buf = new Buffer(data,"utf8");
             if (S(buf.toString()).contains("TN") == true) {
-                
                 //////////////////////////////////////////////////////////
                 /// ETH Data Treatment
                 //////////////////////////////////////////////////////////
