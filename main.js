@@ -200,7 +200,7 @@ function connection(ws) {
 
                 if((payload_output.running== false)&&(payload_output.countDown==true)){
                     if (saverider != payload_output.rider) {
-                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] New Start: Rider"+payload_output.rider+" with horse: "+payload_output.horse+" \r\n";
+                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] New Start: Rider: "+payload_output.rider+" with horse: "+payload_output.horse+" \r\n";
                         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
                     };
                 };
@@ -220,17 +220,17 @@ function connection(ws) {
 
                 if((payload_output.running== false)&&(payload_output.countDown==false)){
                     if (savetime != payload_output.time) {
-                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Finish for Rider"+payload_output.rider+" with horse: "+payload_output.horse+" - Time:"+payload_output.time+" / Pen:"+payload_output.faults+" \r\n";
+                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Finish for Rider: "+payload_output.rider+" with horse: "+payload_output.horse+" - Time:"+payload_output.time+" / Pen:"+payload_output.faults+" \r\n";
                         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
                     };
                 };
 
                 if((payload_output.faults== "666")){
-                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"]  Retires for Rider"+payload_output.rider+" with horse: "+payload_output.horse+"\r\n";
+                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"]  Retires for Rider: "+payload_output.rider+" with horse: "+payload_output.horse+"\r\n";
                         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
                 };
                 if((payload_output.faults== "999")){
-                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"]  Elimination for Rider"+payload_output.rider+" with horse: "+payload_output.horse+"\r\n";
+                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"]  Elimination for Rider: "+payload_output.rider+" with horse: "+payload_output.horse+"\r\n";
                         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
                 };
 
