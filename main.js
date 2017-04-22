@@ -38,7 +38,7 @@ var WebSocketServer = require('ws').Server;
 var app = express();
 var crypto = require('crypto');
 var https = require("https");
-
+var clc = require('cli-color');
 //////////////////////////////////////////////////////////////
 //// Required variables call
 //////////////////////////////////////////////////////////////
@@ -86,9 +86,9 @@ var saverider, savetime, countdiff, phase1,ret,elim;
 var Portselected;
 var myPort;
 
-console.log("**************************************************");
-console.log("** Tag2Equipe Connector by Jumpingaccess Studio **");
-console.log("**************************************************");
+console.log(clc.red.bold("**************************************************"));
+console.log(clc.red.bold("** Tag2Equipe Connector by Jumpingaccess Studio **"));
+console.log(clc.red.bold("**************************************************"));
 ////////////////////////////////////////////////////////
 ///// File system verification for logs of activity
 ////////////////////////////////////////////////////////
@@ -96,9 +96,7 @@ console.log("**************************************************");
 if (!fs.existsSync(path_log)){
     fs.mkdirSync(path_log);
     console.log("LOG Folder :"+path_log+" has been successfully created");
-} else {
-    console.log("LOG Folder :"+path_log+" already exists");
-}
+};
 //////////////////////////////////////////////////////////
 ///// Creation of the Log File
 //////////////////////////////////////////////////////////
@@ -111,7 +109,7 @@ fs.writeFile(path_log+"/log"+dateoftheday+".txt",ligne)
 ////////////////////////////////////////////////////////
 
 const wss = new WebSocket.Server({port: 21000});
-console.log("Websocket Server listening on : ws://127.0.0.1:21000");
+console.log(clc.green.bold("Websocket Server listening on : ws://127.0.0.1:21000"));
 
 ////////////////////////////////////////////////////////
 // WebSocket SSL Server to Equipe 
@@ -122,9 +120,9 @@ console.log("Websocket Server listening on : ws://127.0.0.1:21000");
  wssl = new WebSocketServer({
         server: httpsServer
       });
-console.log("Secure Websocket Server listening on : wss://127.0.0.1:21001");
-console.log("Application listening on : https://127.0.0.1:21001");
-
+console.log(clc.green.bold("Secure Websocket Server listening on : wss://127.0.0.1:21001"));
+console.log(clc.green.bold("Application listening on : https://127.0.0.1:21001"));
+console.log("");
 
 CLIENTS=[];
 
@@ -147,7 +145,8 @@ function connection(ws) {
         ///////////////////////////////////////
         //// Json Parser 
         ///////////////////////////////////////
- 
+        ws.on('error', function(error) {
+            console.log(clc.red.bold('socket error: '+error.toString()))});
 
         ws.on('message', wsdata);
         function sendAll (message) {
@@ -263,113 +262,64 @@ function wsclose() {
 /// Search of Serial Port available and Display.
 /// If no Com used, ETH => ethernet connexion
 /////////////////////////////////////////////////////
-console.log ("Serial port Listing");
-console.log(' Port: ETH');
+console.log(clc.yellow.bold("Serial port Listing"));
+console.log(clc.yellow.bold("*******************"));
+
 ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Listing of the availables ports:\r\nETH\r\n";
 fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
-
+var tabport = [];
+tabport.push("ETH");
 SerialPort.list(function (err, ports) {
     ports.forEach(function(port) {
-        Portfind=port.comName; 
-        console.log(' Port:' +port.comName);
+        Portfind=port.comName;
+        tabport.push(Portfind); 
+        console.log(clc.yellow.bold('Port:' +port.comName));
         ligne = "Port:"+port.comName+"\r\n";
         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
 
    });
+   
         
     // Prompt command line
 
-    Portselected = readlineSync.question('Please Choose the Serial Port; ');
-    if (S(Portselected).contains("COM") == true) {
-        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Selected Port :"+Portselected+"\r\n";
-        fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
+    //Portselected = readlineSync.question(clc.whiteBright('Please write Serial Port to use; '));
+    Portselected = readlineSync.keyInSelect(tabport, 'Select your Serial Port?');
 
-        ///////////////////////
-        /// COM Port Signal
-        ///////////////////////
-        
-        console.log(' Port:' + Portselected);
-        myPort = new SerialPort(Portselected, {
-            baudrate: 9600,
-            parser: SerialPort.parsers.readline("\n")
-        });
-        myPort.on('open', showPortOpen);
-        myPort.on('data', sendSerialData);
-        myPort.on('close', showPortClose);
-        myPort.on('error', showError);
-
-
-
-        function showPortOpen() {
-            console.log('port open. Data rate: ' + myPort.options.baudRate);
-        };
-        
-        function sendSerialData(data) {
-            var info_com = data.split(" ");
-            var new_com = "";
-            var j=0;
-            for (var i=0; i < info_com.length; i++){
-                if (info_com[i] != "") { 
-                        if (j == 2) {
-                            var node = info_com[i];
-                            if (S(node).contains("M") == true) {
-                                node = S(node).right(1).s;
-                            };
-                            
-                        };
-
-                        j++;
-                };
-
-            };
-            json_com = JSON.stringify({"type":"cmd","payload":{"cmd":"trigger","node":node}});
-            ws_client = new WebSocket("ws://localhost:21000");
-            ws_client.on('open', function open() {
-                ws_client.send(json_com);
-            });
-
-        };
-        
-        function showPortClose() {
-            console.log('port closed.');
-        };
-        
-        function showError(error) {
-            console.log('Serial port error: ' + error);
-        };
-
-    } else {
-        ////////////////////////////////
-        /// ETH Signals
-        ////////////////////////////////
-        
-        var ETHselected = readlineSync.question('Please enter the IP of your TAG CP540/545; ');
-        var HOST = ETHselected;
-        var PORT = 7000;
-        var client = new net.Socket();
-        client.connect(PORT, HOST, function() {
-            console.log('Connected on TAG HEUER 545/540 to: ' + HOST + ':' + PORT);
-            var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Connected on TAG HEUER by network to :"+ HOST + ":" + PORT+"\r\n";
+    if (Portselected != -1) {
+        if (S(tabport[Portselected]).contains("COM") == true) {
+            ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Selected Port :"+Portselected+"\r\n";
             fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
-        });
-        client.on('data', getethdata);
-      
-        function getethdata(data) {
-            var buf = new Buffer(data,"utf8");
-            if (S(buf.toString()).contains("TN") == true) {
-                //////////////////////////////////////////////////////////
-                /// ETH Data Treatment
-                //////////////////////////////////////////////////////////
-                var info_eth = S(data).splitLeft(' ');
-                var new_eth = "";
+
+            ///////////////////////
+            /// COM Port Signal
+            ///////////////////////
+            
+            //console.log(' Port:' + Portselected);
+            myPort = new SerialPort(tabport[Portselected], {
+                baudrate: 9600,
+                parser: SerialPort.parsers.readline("\n")
+            });
+            myPort.on('open', showPortOpen);
+            myPort.on('data', sendSerialData);
+            myPort.on('close', showPortClose);
+            myPort.on('error', showError);
+
+            function showPortOpen() {
+                console.log("");
+                console.log(clc.green.bold('port open. Data rate: ' + myPort.options.baudRate));
+            };
+            
+            function sendSerialData(data) {
+                var info_com = data.split(" ");
+                var new_com = "";
                 var j=0;
-                for (var i=0; i < S(data).length; i++){
-                    if (info_eth[i] != "") { 
+                for (var i=0; i < info_com.length; i++){
+                    if (info_com[i] != "") { 
                             if (j == 2) {
-                                var node = info_eth[i];
+                                var node = info_com[i];
                                 if (S(node).contains("M") == true) {
                                     node = S(node).right(1).s;
-                                }; 
+                                };
                                 
                             };
 
@@ -382,12 +332,82 @@ SerialPort.list(function (err, ports) {
                 ws_client.on('open', function open() {
                     ws_client.send(json_com);
                 });
+
             };
+            
+            function showPortClose() {
+                console.log('port closed.');
+            };
+            
+            function showError(error) {
+                console.log('Serial port error: ' + error);
+            };
+
+        } else if (S(tabport[Portselected]).contains("ETH") == true) {
+            ////////////////////////////////
+            /// ETH Signals
+            ////////////////////////////////
+            
+            var ETHselected = readlineSync.question(clc.whiteBright('Please enter the IP of your TAG CP540/545; '));
+            var HOST = ETHselected;
+            var PORT = 7000;
+            var client = new net.Socket();
+            client.connect(PORT, HOST, function() {
+                console.log("");
+                console.log(clc.green.bold('Connected on TAG HEUER 545/540 to: ' + HOST + ':' + PORT));
+                var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Connected on TAG HEUER by network to :"+ HOST + ":" + PORT+"\r\n";
+                fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
+            });
+            client.on('data', getethdata);
+        
+            function getethdata(data) {
+                var buf = new Buffer(data,"utf8");
+                if (S(buf.toString()).contains("TN") == true) {
+                    //////////////////////////////////////////////////////////
+                    /// ETH Data Treatment
+                    //////////////////////////////////////////////////////////
+                    var info_eth = S(data).splitLeft(' ');
+                    var new_eth = "";
+                    var j=0;
+                    for (var i=0; i < S(data).length; i++){
+                        if (info_eth[i] != "") { 
+                                if (j == 2) {
+                                    var node = info_eth[i];
+                                    if (S(node).contains("M") == true) {
+                                        node = S(node).right(1).s;
+                                    }; 
+                                    
+                                };
+
+                                j++;
+                        };
+
+                    };
+                    json_com = JSON.stringify({"type":"cmd","payload":{"cmd":"trigger","node":node}});
+                    ws_client = new WebSocket("ws://localhost:21000");
+                    ws_client.on('open', function open() {
+                        ws_client.send(json_com);
+                    });
+                };
+            };
+            
+            client.on('close', function() {
+                console.log('Connection closed');
+            });
+            
+        } else {
+            console.log('Please select a Serial Port proposed into the list ');
+            console.log('');
+            console.log('Restart the process');
+            
+            process.exit();
         };
-        
-        client.on('close', function() {
-            console.log('Connection closed');
-        });
-        
+    } else {
+            console.log('Please select a Serial Port proposed into the list ');
+            console.log('');
+            console.log('Restart the process');
+            
+            process.exit();
+
     };
 });
