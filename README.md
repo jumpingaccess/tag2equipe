@@ -23,11 +23,11 @@ Choose of the connection before the launch of the bridge.
 
 Signal correctly sent to Equipe.
 
+Signal Correctly received from Equipe Manual Start/Stop
+
 
 TODO
 ---------
-*Log of the activity.
-
 *Web interface.
 
 
