@@ -273,7 +273,7 @@ SerialPort.list(function (err, ports) {
     ports.forEach(function(port) {
         Portfind=port.comName;
         tabport.push(Portfind); 
-        console.log(clc.yellow.bold('Port:' +port.comName));
+        //console.log(clc.yellow.bold('Port:' +port.comName));
         ligne = "Port:"+port.comName+"\r\n";
         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
 
@@ -306,8 +306,10 @@ SerialPort.list(function (err, ports) {
 
             function showPortOpen() {
                 console.log("");
-                console.log(clc.green.bold('port open. Data rate: ' + myPort.options.baudRate));
-            };
+                console.log(clc.green.bold('Connected on TAG HEUER 540/545 on port: '+tabport[Portselected] +' (Data rate: ' + myPort.options.baudRate)+")");
+                ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Connected on TAG HEUER on port: "+tabport[Portselected] +" (Data rate: " + myPort.options.baudRate+")\r\n";
+                fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne) 
+           };
             
             function sendSerialData(data) {
                 var info_com = data.split(" ");
@@ -337,24 +339,41 @@ SerialPort.list(function (err, ports) {
             
             function showPortClose() {
                 console.log('port closed.');
+                process.exit();
             };
             
             function showError(error) {
-                console.log('Serial port error: ' + error);
+                console.log('Serial port error: ' + error.toString());
+                process.exit();
             };
 
         } else if (S(tabport[Portselected]).contains("ETH") == true) {
             ////////////////////////////////
             /// ETH Signals
             ////////////////////////////////
+            question: do{
+                var ETHselected = readlineSync.question(clc.whiteBright('Please enter the IP of your TAG CP540/545; '));
+                var validip =ValidateIPaddress(ETHselected);
+                //console.log(validip);
+            } while(validip == false);   
+
+
+            function ValidateIPaddress(ip) {  
+                    if (/^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(ip)) {  
+                        //console.log("You have entered an valid IP address!")  
+                        return true; 
+                    } else {  
+                        console.log("You have entered an invalid IP address!")  
+                        return false;  
+                    }  
+            };
             
-            var ETHselected = readlineSync.question(clc.whiteBright('Please enter the IP of your TAG CP540/545; '));
             var HOST = ETHselected;
             var PORT = 7000;
             var client = new net.Socket();
             client.connect(PORT, HOST, function() {
                 console.log("");
-                console.log(clc.green.bold('Connected on TAG HEUER 545/540 to: ' + HOST + ':' + PORT));
+                console.log(clc.green.bold('Connected on TAG HEUER 540/545 on port: '+tabport[Portselected] +' (' + HOST + ':' + PORT+')'));
                 var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Connected on TAG HEUER by network to :"+ HOST + ":" + PORT+"\r\n";
                 fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
             });
@@ -393,6 +412,11 @@ SerialPort.list(function (err, ports) {
             
             client.on('close', function() {
                 console.log('Connection closed');
+                process.exit();
+            });
+            client.on('error', function(error) {
+                console.log('Error in connection:'+error.toString());
+                process.exit();
             });
             
         } else {
