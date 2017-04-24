@@ -39,6 +39,8 @@ var app = express();
 var crypto = require('crypto');
 var https = require("https");
 var clc = require('cli-color');
+var jxm = require('jxm');
+var express = require('express');
 //////////////////////////////////////////////////////////////
 //// Required variables call
 //////////////////////////////////////////////////////////////
@@ -73,7 +75,17 @@ var httpsServer;
 var wssl;
 var certificate = fs.readFileSync('cert/cert.pem', 'utf8');
 var privateKey  = fs.readFileSync('cert/key.pem', 'utf8');
+const path = require('path');
+var fileName = path.join(__dirname, 'sslcert', 'atu.equipe.com.pfx');
+var passphrase = 'yEXFYw8p8Horbu';
+
 var credentials = {key: privateKey, cert: certificate};
+const options = {
+          pfx: fs.readFileSync(fileName),
+          passphrase: passphrase
+
+
+};
 var json_com="";
 var interval;
 var json_txt;
@@ -115,7 +127,7 @@ console.log(clc.green.bold("Websocket Server listening on : ws://127.0.0.1:21000
 // WebSocket SSL Server to Equipe 
 ////////////////////////////////////////////////////////
 
- httpsServer = https.createServer(credentials, app);
+ httpsServer = https.createServer(options, app);
  httpsServer.listen(21001);
  wssl = new WebSocketServer({
         server: httpsServer
@@ -344,9 +356,12 @@ SerialPort.list(function (err, ports) {
             myPort.on('close', showPortClose);
             myPort.on('error', showError);
 
+            
+
             function showPortOpen() {
                 console.log("");
                 console.log(clc.green.bold('Connected on TAG HEUER 540/545 on port: '+tabport[Portselected] +' (Data rate: ' + myPort.options.baudRate)+")");
+                console.log(clc.green.bold('Press CTRL+C to exit or Close the window'));
                 ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Connected on TAG HEUER on port: "+tabport[Portselected] +" (Data rate: " + myPort.options.baudRate+")\r\n";
                 fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne) 
            };
@@ -414,6 +429,7 @@ SerialPort.list(function (err, ports) {
             client.connect(PORT, HOST, function() {
                 console.log("");
                 console.log(clc.green.bold('Connected on TAG HEUER 540/545 on port: '+tabport[Portselected] +' (' + HOST + ':' + PORT+')'));
+                console.log(clc.green.bold('Press CTRL+C to exit or Close the window'));
                 var ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Connected on TAG HEUER by network to :"+ HOST + ":" + PORT+"\r\n";
                 fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
             });
