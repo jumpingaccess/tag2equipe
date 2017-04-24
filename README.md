@@ -25,7 +25,7 @@ Signal correctly sent to Equipe.
 
 Signal Correctly received from Equipe Manual Start/Stop
 
-Connection to Equipe with ws:// or wss:// ( open browser first then point on https://127.0.0.1:21001 to accept the certificate )
+Connection to Equipe with ws:// or wss:// 
 
 
 TODO
