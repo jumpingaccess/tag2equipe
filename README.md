@@ -11,7 +11,7 @@ Install
 Run
 --------
 
-Console only in this version.
+Console only.
 
     node main.js or tag2equipe.bat on Windows
 
@@ -30,6 +30,5 @@ Connection to Equipe with ws:// or wss://
 
 TODO
 ---------
-*Web interface.
 
 
