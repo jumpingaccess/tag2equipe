@@ -125,6 +125,10 @@ console.log(clc.green.bold("Application listening on : https://127.0.0.1:21001")
 console.log("");
 
 CLIENTS=[];
+var resendnode1=0;
+var resendnode2=0;
+var resendnode3=0;
+var resendnode4=0;
 
 ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Start of the Websocket Server \r\n";
 fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne)
@@ -155,15 +159,34 @@ function connection(ws) {
             };
         };
         function wsdata(data) {
+            //console.log(data);
             msg_received = JSON.parse(data);
             msg_type = msg_received["type"];
             msg_cmd = msg_received["payload"]["cmd"];
             msg_node = msg_received["payload"]["node"];
             if ((msg_type=='cmd') && (msg_cmd=="trigger") && (msg_node != "") ) {
+                if (msg_node == "1") {
+                        resendnode1++;
+                        rep = JSON.stringify({"type": "pulse", "payload":{ "timeTicks": TickTimer.now(), "node": msg_node, "resends": resendnode1, "batteryLevel": 5, "RSSI": 1}});
+                };
+                if (msg_node == "2") {
+                        resendnode2++;
+                        rep = JSON.stringify({"type": "pulse", "payload":{ "timeTicks": TickTimer.now(), "node": msg_node, "resends": resendnode2, "batteryLevel": 5, "RSSI": 1}});
+                };
+                if (msg_node == "3") {
+                        resendnode3++;
+                        rep = JSON.stringify({"type": "pulse", "payload":{ "timeTicks": TickTimer.now(), "node": msg_node, "resends": resendnode3, "batteryLevel": 5, "RSSI": 1}});
+                };
+                if (msg_node == "4") {
+                       resendnode4++;
+                        rep = JSON.stringify({"type": "pulse", "payload":{ "timeTicks": TickTimer.now(), "node": msg_node, "resends": resendnode4, "batteryLevel": 5, "RSSI": 1}});
+                }
+                
+                //console.log(resend);
                 /////////////////////////////////////////////////////////////////////////////
                 //// Send Pulse information when requested ( Tag Pulse or Manual in Equipe)
                 /////////////////////////////////////////////////////////////////////////////
-                rep = JSON.stringify({"type": "pulse", "payload":{ "timeTicks": TickTimer.now(), "node": msg_node, "resends": 1, "batteryLevel": 4, "RSSI": -10}});
+                //console.log(rep);
                 sendAll(rep);
                 ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] New Pulse information on node:"+msg_node+" \r\n";
                 fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
@@ -196,11 +219,27 @@ function connection(ws) {
                 payload_output.totalFaults=msg_received["payload"]["totalFaults"];
                 payload_output.waiting=msg_received["payload"]["waiting"];
                 
+                if ((payload_output.countDownValue=="-45.00")&&(payload_output.running==false)){
+                    //console.log(payload_output.countDownValue);
+
+                        ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Reset: Rider: "+payload_output.rider+" with horse: "+payload_output.horse+" \r\n";
+                        fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
+                        //console.log("reset");
+                        resendnode1 = 0;
+                        resendnode2 = 0;
+                        resendnode3 = 0;
+                        resendnode4 = 0;
+                };
 
                 if((payload_output.running== false)&&(payload_output.countDown==true)){
                     if (saverider != payload_output.rider) {
                         ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] New Start: Rider: "+payload_output.rider+" with horse: "+payload_output.horse+" \r\n";
                         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
+                        resendnode1 = 0;
+                        resendnode2 = 0;
+                        resendnode3 = 0;
+                        resendnode4 = 0;
+  
                     };
                 };
                 if((payload_output.running== true)&&(payload_output.countDown==false)&&(payload_output.phase==1)){
@@ -221,6 +260,7 @@ function connection(ws) {
                     if (savetime != payload_output.time) {
                         ligne = "["+TickTimer.ticksToTime(TickTimer.now())+"] Finish for Rider: "+payload_output.rider+" with horse: "+payload_output.horse+" - Time:"+payload_output.time+" / Pen:"+payload_output.faults+" \r\n";
                         fs.appendFile(path_log+"/log"+dateoftheday+".txt",ligne);
+
                     };
                 };
 
