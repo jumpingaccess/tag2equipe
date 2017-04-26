@@ -2,7 +2,7 @@
   "name": "tag2equipe",
   "version": "1.0.6",
   "description": "Bridge between Tag heuer CP 540/545 to Equipe system",
-  "main": "main.js",
+  "main": "index.html",
   "author": "Laurent van der Straten <laurent@jumpingaccess.com>",
   "license": "GPL-3.0",
   "scripts": {
@@ -11,11 +11,13 @@
   "repository": {
     "type": "git",
     "url": "https://github.com/jumpingaccess/tag2equipe"
-   },
+  },
   "bugs": {
     "url": "https://github.com/jumpingaccess/tag2equipe/issues"
-   },
+  },
   "dependencies": {
+    "cli-color": "^1.2.0",
+    "console.table": "^0.8.0",
     "crypto": "^0.0.3",
     "dateformat": "^2.0.0",
     "ejs": "^2.5.6",
@@ -27,6 +29,7 @@
     "serialport": "^4.0.6",
     "string": "^3.3.3",
     "ws": "^2.3.1",
-    "cli-color":"^1.2.0"
+    "blessed":"^0.1.81",
+    "blessed-contrib":"^4.7.5"
   }
 }

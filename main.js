@@ -41,9 +41,12 @@ var https = require("https");
 var clc = require('cli-color');
 var jxm = require('jxm');
 var express = require('express');
+var contable = require('console.table');
 //////////////////////////////////////////////////////////////
 //// Required variables call
 //////////////////////////////////////////////////////////////
+
+
 
 var Portfind;
 var payload_output = {
@@ -97,6 +100,13 @@ var rep;
 var saverider, savetime, countdiff, phase1,ret,elim;
 var Portselected;
 var myPort;
+var blessed = require('blessed')
+    , contrib = require('blessed-contrib')
+    , screen = blessed.screen()
+    
+
+var table_activ,table_horse;
+
 
 console.log(clc.red.bold("**************************************************"));
 console.log(clc.red.bold("** Tag2Equipe Connector by Jumpingaccess Studio **"));
@@ -148,11 +158,14 @@ wss.on('connection', connection);
 wss.on('close',wsclose);
 wssl.on('connection', connection);   
 wssl.on('closewss',wsclose);
+var timecross1, timecross2, timecross3, timecross4 = 0;
+
 function connection(ws) {
         //////////////////////////////////
         /// Send Running time to Equipe //
         //////////////////////////////////
         CLIENTS.push(ws);
+
         interval = setInterval(function timeout() {
             json_txt = JSON.stringify({"type":"runningTime","payload":{"time": TickTimer.ticksToTime(TickTimer.now()),"ticks":TickTimer.now()}})
             ws.send(json_txt,function (){ /* ignore errors */ })    ;
@@ -179,22 +192,69 @@ function connection(ws) {
             if ((msg_type=='cmd') && (msg_cmd=="trigger") && (msg_node != "") ) {
                 if (msg_node == "1") {
                         resendnode1++;
+                        timecross1 = TickTimer.now();
                         rep = JSON.stringify({"type": "pulse", "payload":{ "timeTicks": TickTimer.now(), "node": msg_node, "resends": resendnode1, "batteryLevel": 5, "RSSI": 1}});
                 };
                 if (msg_node == "2") {
                         resendnode2++;
+                         timecross2 = TickTimer.now();
                         rep = JSON.stringify({"type": "pulse", "payload":{ "timeTicks": TickTimer.now(), "node": msg_node, "resends": resendnode2, "batteryLevel": 5, "RSSI": 1}});
                 };
                 if (msg_node == "3") {
                         resendnode3++;
+                         timecross3 = TickTimer.now();
                         rep = JSON.stringify({"type": "pulse", "payload":{ "timeTicks": TickTimer.now(), "node": msg_node, "resends": resendnode3, "batteryLevel": 5, "RSSI": 1}});
                 };
                 if (msg_node == "4") {
                        resendnode4++;
+                        timecross4 = TickTimer.now();
                         rep = JSON.stringify({"type": "pulse", "payload":{ "timeTicks": TickTimer.now(), "node": msg_node, "resends": resendnode4, "batteryLevel": 5, "RSSI": 1}});
                 }
+                    table_activ = contrib.table ( 
+                        { keys: true
+                            , fg: 'white'
+                            , selectedFg: 'white'
+                            , selectedBg: 'blue'
+                            , interactive: true
+                            , label: 'Cells Activity'
+                            , width: '100%'
+                            , height: '25%'
+                            , border: {type: "line", fg: "cyan"}
+                            , columnSpacing: 10 //in chars
+                            , columnWidth: [16, 12, 12,12] /*in chars*/ 
+                        }
+                    )
+                    table_activ.setData(
+                        { headers: ['Cell 1', 'Cell 2', 'Cell 3', 'Cell 4'], data:[ [TickTimer.ticksToTime(timecross1), TickTimer.ticksToTime(timecross2), TickTimer.ticksToTime(timecross3),TickTimer.ticksToTime(timecross4)]]})
                 
-                //console.log(resend);
+                    table_activ.focus()
+                    screen.append(table_activ)
+                    screen.render();    
+                    screen.key(['escape', 'q', 'C-c'], function(ch, key) {
+                            return process.exit(0);
+                    });
+                /*
+
+                
+                console.table([
+                    {
+                        Cell: "Cell 1",
+                        Time: TickTimer.ticksToTime(timecross1)
+
+                    },{
+                        Cell: "Cell 2",
+                        Time: TickTimer.ticksToTime(timecross2)
+
+                    },{
+                        Cell: "Cell 3",
+                        Time: TickTimer.ticksToTime(timecross3)
+
+                    },{
+                        Cell: "Cell 4",
+                        Time: TickTimer.ticksToTime(timecross4)
+
+                    }
+                ])   */             //console.log(resend);
                 /////////////////////////////////////////////////////////////////////////////
                 //// Send Pulse information when requested ( Tag Pulse or Manual in Equipe)
                 /////////////////////////////////////////////////////////////////////////////
@@ -292,10 +352,12 @@ function connection(ws) {
                 ret=payload_output.faults;
                 elim=payload_output.faults;
 
+ 
+
             };
         
         };
-    
+  
 
 };
 ///////////////////////////////////////////////////
